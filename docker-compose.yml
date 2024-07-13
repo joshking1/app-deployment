@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  frontend:
+    image: mydockerhub/myapp-frontend:latest
+    ports:
+      - "8080:80"
+    networks:
+      - myapp-network
+    volumes:
+      - frontend_data:/usr/share/nginx/html
+
+  backend:
+    image: mydockerhub/myapp-backend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=myapp
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+    networks:
+      - myapp-network
+    volumes:
+      - backend_data:/app
+
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: myapp
+    ports:
+      - "3306:3306"
+    networks:
+      - myapp-network
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+networks:
+  myapp-network:
+
+volumes:
+  frontend_data:
+  backend_data:
+  mysql_data:

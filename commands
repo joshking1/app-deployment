@@ -1,0 +1,8 @@
+# Command to run docker-compose
+
+docker-compose up -d
+
+
+# Ansible command 
+
+ansible-playbook -i hosts three-tier-application-environmental-configuration.yml

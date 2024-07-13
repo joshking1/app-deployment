@@ -1,0 +1,80 @@
+- hosts: all
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Install MySQL
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+    - name: Start MySQL service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Create MySQL database
+      mysql_db:
+        name: myapp
+        state: present
+
+    - name: Create MySQL user
+      mysql_user:
+        name: root
+        password: root
+        priv: 'myapp.*:ALL'
+        host: localhost
+        state: present
+
+    - name: Docker login to Docker Hub
+      docker_login:
+        username: "mydockerhub"
+        password: "{{ docker_hub_password }}"
+        reauthorize: yes
+    
+    - name: Pull backend image from Docker Hub
+      docker_image:
+        name: mydockerhub/myapp-backend
+        source: pull
+
+    - name: Pull frontend image from Docker Hub
+      docker_image:
+        name: mydockerhub/myapp-frontend
+        source: pull
+
+    - name: Create a Docker network
+      docker_network:
+        name: myapp-network
+        driver: bridge
+
+    - name: Run backend container
+      docker_container:
+        name: myapp-backend
+        image: mydockerhub/myapp-backend
+        state: started
+        ports:
+          - "3000:3000"
+        networks:
+          - name: myapp-network
+        env:
+          MYSQL_HOST: localhost
+          MYSQL_PORT: 3306
+          MYSQL_DB: myapp
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root
+
+    - name: Run frontend container
+      docker_container:
+        name: myapp-frontend
+        image: mydockerhub/myapp-frontend
+        state: started
+        ports:
+          - "8080:80"
+        networks:
+          - name: myapp-network
+

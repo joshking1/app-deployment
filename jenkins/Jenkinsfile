@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    
+    tools {
+        maven 'Maven-3.8.4'
+    }
+
+    stages {
+        stage("Git Checkout") {
+            steps {
+                git credentialsId: 'GIT_HUB_CREDENTIALS', url: 'https://github.com/joshking1/myRepoForJavaApp.git'
+            }
+        }
+        stage("Maven Clean Build and Test") {
+            steps {
+                script {
+                    def mavenHome = tool name: "Maven-3.8.6", type: "maven"
+                    def mavenCMD = "${mavenHome}/bin/mvn"
+                    sh "${mavenCMD} clean package -Ptest"
+                    sh "${mavenCMD} test -Ptest"
+                    sh "${mavenCMD} verify -Ptest"
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def mvnHome = tool name: 'Maven-3.8.4', type: 'maven'
+                    withSonarQubeEnv('josh') { 
+                        sh "${mvnHome}/bin/mvn sonar:sonar -Ptest"
+                    }
+                }
+            }
+        }
+        stage("Build Docker Image") {
+            steps {
+                sh "docker build -t mydockerhub/myapp-backend:latest backend"
+                sh "docker build -t mydockerhub/myapp-frontend:latest frontend"
+            }
+        }
+        stage("Docker Image Tag and Push") {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'DOCKER_HUB_PASSWORD', variable: 'PASSWORD')]) {
+                        sh 'docker login -u mydockerhub -p $PASSWORD'
+                    }
+                    sh "docker push mydockerhub/myapp-backend:latest"
+                    sh "docker push mydockerhub/myapp-frontend:latest"
+                }
+            }
+        }
+    }
+}
+
+
+
